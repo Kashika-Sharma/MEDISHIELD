@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediShield — Hospital Security Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14; --surface: #0d1520; --surface2: #111d2e;
+    --border: #1a2d45; --accent: #00d4ff; --accent2: #0099cc;
+    --red: #ff3b5c; --amber: #ffb700; --green: #00e676;
+    --text: #e0eaf5; --muted: #5a7a99;
+    --mono: 'Share Tech Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+  .sidebar { width: 230px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; flex-shrink: 0; }
+  .logo { padding: 0 20px 28px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .logo-icon svg { width: 20px; height: 20px; fill: #080c14; }
+  .logo-name { font-family: var(--mono); font-size: 18px; color: var(--accent); letter-spacing: 2px; }
+  .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.2s; border-left: 2px solid transparent; text-decoration: none; }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,255,0.05); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; padding: 20px; border-top: 1px solid var(--border); }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .dpdp-badge { margin-top: 10px; background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); border-radius: 6px; padding: 6px 10px; font-size: 10px; color: var(--accent); font-family: var(--mono); letter-spacing: 0.5px; }
+  .main { flex: 1; padding: 28px; overflow-y: auto; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .page-title { font-size: 20px; font-weight: 600; color: var(--text); }
+  .page-sub { font-size: 12px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .scan-btn { background: var(--accent); color: #080c14; border: none; padding: 9px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--mono); letter-spacing: 1px; transition: all 0.2s; }
+  .scan-btn:hover { background: #33ddff; transform: translateY(-1px); }
+  .time-badge { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); padding: 7px 14px; border-radius: 6px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.red::after { background: var(--red); }
+  .stat-card.amber::after { background: var(--amber); }
+  .stat-card.green::after { background: var(--green); }
+  .stat-card.blue::after { background: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-bottom: 10px; font-family: var(--mono); }
+  .stat-num { font-size: 32px; font-weight: 600; font-family: var(--mono); }
+  .stat-num.red { color: var(--red); } .stat-num.amber { color: var(--amber); } .stat-num.green { color: var(--green); } .stat-num.blue { color: var(--accent); }
+  .stat-change { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .stat-change span { color: var(--red); }
+  .grid3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .card-title { font-size: 12px; color: var(--muted); letter-spacing: 1px; font-family: var(--mono); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+  .card-title a { color: var(--accent); font-size: 11px; text-decoration: none; }
+  .donut-wrap { display: flex; align-items: center; gap: 24px; }
+  .donut-svg { flex-shrink: 0; }
+  .donut-legend { display: flex; flex-direction: column; gap: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { color: var(--muted); font-size: 12px; }
+  .legend-count { font-weight: 600; font-family: var(--mono); margin-left: auto; min-width: 30px; }
+  .feed-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+  .feed-icon.red { background: rgba(255,59,92,0.15); } .feed-icon.amber { background: rgba(255,183,0,0.15); } .feed-icon.green { background: rgba(0,230,118,0.15); }
+  .feed-body { flex: 1; }
+  .feed-title { font-size: 13px; color: var(--text); line-height: 1.4; }
+  .feed-meta { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+  .alert-table { width: 100%; border-collapse: collapse; }
+  .alert-table th { font-size: 10px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; padding: 0 12px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .alert-table td { padding: 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .alert-table tr:last-child td { border-bottom: none; }
+  .alert-table tr:hover td { background: rgba(0,212,255,0.03); }
+  .risk-badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; font-family: var(--mono); }
+  .risk-badge.critical { background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+  .risk-badge.high { background: rgba(255,183,0,0.15); color: var(--amber); border: 1px solid rgba(255,183,0,0.3); }
+  .risk-badge.medium { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+  .score-bar { display: flex; align-items: center; gap: 8px; }
+  .bar-track { height: 4px; background: var(--border); border-radius: 2px; width: 80px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; }
+  .bar-fill.red { background: var(--red); } .bar-fill.amber { background: var(--amber); } .bar-fill.blue { background: var(--accent); }
+  .action-link { color: var(--accent); font-size: 12px; text-decoration: none; cursor: pointer; }
+  .scanning { display: none; }
+  .scanning.active { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--accent); padding: 10px 16px; background: rgba(0,212,255,0.05); border: 1px solid rgba(0,212,255,0.2); border-radius: 6px; margin-bottom: 16px; }
+  .scan-bar { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .scan-fill { height: 100%; background: var(--accent); border-radius: 2px; animation: scanAnim 2s ease-in-out infinite; }
+  @keyframes scanAnim { 0%{width:0%} 100%{width:100%} }
+  .dpdp-alert { background: rgba(0,212,255,0.05); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--accent); font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+      <div class="logo-name">MEDISHIELD</div>
+      <div class="logo-sub">DPDP ACT COMPLIANCE SYSTEM · INDIA</div>
+    </div>
+    <a class="nav-item active" href="index.html"><span class="nav-dot"></span>Dashboard</a>
+    <a class="nav-item" href="alerts.html"><span class="nav-dot"></span>Breach Alerts <span style="margin-left:auto;background:rgba(255,59,92,0.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:99px;font-family:var(--mono);">8</span></a>
+    <a class="nav-item" href="report.html"><span class="nav-dot"></span>DPDP Compliance Report</a>
+    <div class="nav-item"><span class="nav-dot"></span>Patients</div>
+    <div class="nav-item"><span class="nav-dot"></span>Settings</div>
+    <div class="sidebar-footer">
+      <div><span class="status-dot"></span><span class="status-text">MONITORING ACTIVE</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:var(--mono);">Last scan: 2 min ago</div>
+      <div class="dpdp-badge">DPDP ACT 2023 COMPLIANT</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Security Dashboard</div>
+        <div class="page-sub">AIIMS NEW DELHI — UNIT ID: AND-2847 · ABDM REGISTERED</div>
+      </div>
+      <div class="topbar-right">
+        <div class="time-badge" id="clock">--:--:--</div>
+        <button class="scan-btn" onclick="triggerScan()">⟳ RUN SCAN</button>
+      </div>
+    </div>
+
+    <div class="dpdp-alert">
+      ⚖ DPDP Act 2023 — Active breaches must be reported to Data Protection Board of India within 72 hours &nbsp;·&nbsp; <span style="color:var(--red)">2 incidents pending report submission</span>
+    </div>
+
+    <div class="scanning" id="scanBar">
+      <span>SCANNING DARK WEB FEEDS · CLOUDSEK THREAT INTELLIGENCE · HIBP API...</span>
+      <div class="scan-bar"><div class="scan-fill"></div></div>
+      <span id="scanPct">0%</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card red">
+        <div class="stat-label">CRITICAL BREACHES</div>
+        <div class="stat-num red">8</div>
+        <div class="stat-change"><span>↑ 3</span> since yesterday</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">HIGH RISK PATIENTS</div>
+        <div class="stat-num amber">23</div>
+        <div class="stat-change"><span>↑ 7</span> this week</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">PATIENTS MONITORED</div>
+        <div class="stat-num blue">2,847</div>
+        <div class="stat-change" style="color:var(--muted)">ABHA IDs active</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">ALERTS SENT TODAY</div>
+        <div class="stat-num green">12</div>
+        <div class="stat-change" style="color:var(--muted)">Patients notified</div>
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">RECENT BREACH ALERTS <a href="alerts.html">View all →</a></div>
+        <table class="alert-table">
+          <thead>
+            <tr>
+              <th>PATIENT</th>
+              <th>DATA EXPOSED</th>
+              <th>SOURCE</th>
+              <th>RISK</th>
+              <th>SCORE</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div style="font-weight:500">Rahul S.</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">ID: PT-4821</div></td>
+              <td style="color:var(--muted);font-size:12px">Email, ABHA No., Aadhaar Health ID</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--red)">darkpaste[.]onion</td>
+              <td><span class="risk-badge critical">CRITICAL</span></td>
+              <td><div class="score-bar"><div class="bar-track"><div class="bar-fill red" style="width:94%"></div></div><span style="font-family:var(--mono);font-size:12px">94</span></div></td>
+              <td><a class="action-link" href="alerts.html">Alert →</a></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:500">Anjali K.</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">ID: PT-3302</div></td>
+              <td style="color:var(--muted);font-size:12px">Email, Medical Records</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--red)">breachdb[.]net</td>
+              <td><span class="risk-badge critical">CRITICAL</span></td>
+              <td><div class="score-bar"><div class="bar-track"><div class="bar-fill red" style="width:88%"></div></div><span style="font-family:var(--mono);font-size:12px">88</span></div></td>
+              <td><a class="action-link" href="alerts.html">Alert →</a></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:500">Priya M.</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">ID: PT-5519</div></td>
+              <td style="color:var(--muted);font-size:12px">Email, Password Hash</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--amber)">HaveIBeenPwned API</td>
+              <td><span class="risk-badge high">HIGH</span></td>
+              <td><div class="score-bar"><div class="bar-track"><div class="bar-fill amber" style="width:72%"></div></div><span style="font-family:var(--mono);font-size:12px">72</span></div></td>
+              <td><a class="action-link" href="alerts.html">Alert →</a></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:500">Vikram P.</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">ID: PT-2201</div></td>
+              <td style="color:var(--muted);font-size:12px">Email, Date of Birth</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--amber)">leakcheck[.]io</td>
+              <td><span class="risk-badge high">HIGH</span></td>
+              <td><div class="score-bar"><div class="bar-track"><div class="bar-fill amber" style="width:65%"></div></div><span style="font-family:var(--mono);font-size:12px">65</span></div></td>
+              <td><a class="action-link" href="alerts.html">Alert →</a></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:500">Sneha T.</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">ID: PT-6678</div></td>
+              <td style="color:var(--muted);font-size:12px">Email only</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--accent)">HaveIBeenPwned API</td>
+              <td><span class="risk-badge medium">MEDIUM</span></td>
+              <td><div class="score-bar"><div class="bar-track"><div class="bar-fill blue" style="width:42%"></div></div><span style="font-family:var(--mono);font-size:12px">42</span></div></td>
+              <td><a class="action-link" href="alerts.html">Alert →</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <div class="card-title">RISK DISTRIBUTION</div>
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="110" height="110" viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#1a2d45" stroke-width="16"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#ff3b5c" stroke-width="16" stroke-dasharray="30 221" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#ffb700" stroke-width="16" stroke-dasharray="60 191" stroke-dashoffset="-30" transform="rotate(-90 55 55)"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#00d4ff" stroke-width="16" stroke-dasharray="80 171" stroke-dashoffset="-90" transform="rotate(-90 55 55)"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#00e676" stroke-width="16" stroke-dasharray="81 170" stroke-dashoffset="-170" transform="rotate(-90 55 55)"/>
+              <text x="55" y="50" text-anchor="middle" fill="#e0eaf5" font-size="18" font-weight="600" font-family="'Share Tech Mono'">2847</text>
+              <text x="55" y="65" text-anchor="middle" fill="#5a7a99" font-size="9" font-family="'DM Sans'">patients</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div><span class="legend-label">Critical</span><span class="legend-count" style="color:var(--red)">8</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div><span class="legend-label">High</span><span class="legend-count" style="color:var(--amber)">23</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span class="legend-label">Medium</span><span class="legend-count" style="color:var(--accent)">41</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><span class="legend-label">Safe</span><span class="legend-count" style="color:var(--green)">2775</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">LIVE ACTIVITY</div>
+          <div class="feed-item">
+            <div class="feed-icon red">⚠</div>
+            <div class="feed-body">
+              <div class="feed-title">New breach detected — PT-4821 (Rahul S.)</div>
+              <div class="feed-meta">2 min ago · darkpaste[.]onion</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon green">✉</div>
+            <div class="feed-body">
+              <div class="feed-title">Alert email sent to Anjali K.</div>
+              <div class="feed-meta">14 min ago · Delivered</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon amber">⟳</div>
+            <div class="feed-body">
+              <div class="feed-title">Scan completed — 2,847 ABHA records checked</div>
+              <div class="feed-meta">18 min ago · CloudSEK + HIBP · 0 new matches</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon red">⚖</div>
+            <div class="feed-body">
+              <div class="feed-title">DPDP Act report generated for incident #0032</div>
+              <div class="feed-meta">1 hr ago · Sent to Data Protection Board of India</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleTimeString('en-IN', {hour12: false});
+  }
+  updateClock(); setInterval(updateClock, 1000);
+
+  function triggerScan() {
+    const bar = document.getElementById('scanBar');
+    const pct = document.getElementById('scanPct');
+    bar.classList.add('active');
+    let p = 0;
+    const iv = setInterval(() => {
+      p += Math.floor(Math.random() * 8) + 3;
+      if (p >= 100) { p = 100; clearInterval(iv); setTimeout(() => bar.classList.remove('active'), 800); }
+      pct.textContent = p + '%';
+    }, 120);
+  }
+</script>
+</body>
+</html>

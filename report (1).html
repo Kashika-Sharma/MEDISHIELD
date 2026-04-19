@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediShield — DPDP Act Compliance Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14; --surface: #0d1520; --surface2: #111d2e;
+    --border: #1a2d45; --accent: #00d4ff; --red: #ff3b5c;
+    --amber: #ffb700; --green: #00e676; --text: #e0eaf5;
+    --muted: #5a7a99; --mono: 'Share Tech Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+  .sidebar { width: 230px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; flex-shrink: 0; }
+  .logo { padding: 0 20px 28px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .logo-icon svg { width: 20px; height: 20px; fill: #080c14; }
+  .logo-name { font-family: var(--mono); font-size: 18px; color: var(--accent); letter-spacing: 2px; }
+  .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.2s; border-left: 2px solid transparent; text-decoration: none; }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,255,0.05); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; padding: 20px; border-top: 1px solid var(--border); }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .dpdp-badge { margin-top: 10px; background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); border-radius: 6px; padding: 6px 10px; font-size: 10px; color: var(--accent); font-family: var(--mono); }
+  .main { flex: 1; padding: 28px; overflow-y: auto; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .page-title { font-size: 20px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+  .report-container { max-width: 860px; }
+  .report-header { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--red); border-radius: 12px; padding: 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .report-type { font-size: 10px; color: var(--red); font-family: var(--mono); letter-spacing: 2px; margin-bottom: 6px; }
+  .report-title { font-size: 22px; font-weight: 600; }
+  .report-id { font-family: var(--mono); font-size: 20px; color: var(--accent); }
+  .report-date { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 4px; }
+  .severity-tag { display: inline-block; margin-top: 8px; padding: 4px 14px; border-radius: 99px; font-size: 12px; font-weight: 500; font-family: var(--mono); background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  .section-title { font-size: 10px; color: var(--accent); font-family: var(--mono); letter-spacing: 2px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field-label { font-size: 10px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; }
+  .field-value { font-size: 14px; color: var(--text); padding: 8px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; }
+  .field-value.danger { color: var(--red); border-color: rgba(255,59,92,0.3); }
+  .field-value.warn { color: var(--amber); }
+  .field-value.good { color: var(--green); }
+  .field-full { grid-column: 1 / -1; }
+  .data-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .data-tag { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-family: var(--mono); }
+  .data-tag.critical { background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid rgba(255,59,92,0.2); }
+  .data-tag.high { background: rgba(255,183,0,0.12); color: var(--amber); border: 1px solid rgba(255,183,0,0.2); }
+  .data-tag.medium { background: rgba(0,212,255,0.08); color: var(--accent); border: 1px solid rgba(0,212,255,0.15); }
+  .timeline-item { display: flex; gap: 16px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .timeline-item:last-child { border-bottom: none; }
+  .tl-time { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 140px; flex-shrink: 0; margin-top: 2px; }
+  .tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .tl-content { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; background: var(--surface2); margin-bottom: 8px; }
+  .check-box { width: 20px; height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .check-box.done { background: rgba(0,230,118,0.15); color: var(--green); }
+  .check-box.pending { background: rgba(255,183,0,0.15); color: var(--amber); }
+  .check-text { font-size: 13px; flex: 1; }
+  .check-status { font-size: 11px; font-family: var(--mono); }
+  .check-status.done { color: var(--green); } .check-status.pending { color: var(--amber); }
+  .actions-bar { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+  .btn { padding: 12px 24px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: var(--mono); letter-spacing: 1px; transition: all 0.2s; }
+  .btn-primary { background: var(--accent); color: #080c14; }
+  .btn-primary:hover { background: #33ddff; }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+  .btn-danger { background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+  .btn-danger:hover { background: rgba(255,59,92,0.25); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #080c14; padding: 12px 20px; border-radius: 8px; font-family: var(--mono); font-size: 13px; font-weight: 500; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 99; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .penalty-box { background: rgba(255,59,92,0.06); border: 1px solid rgba(255,59,92,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+      <div class="logo-name">MEDISHIELD</div>
+      <div class="logo-sub">DPDP ACT COMPLIANCE SYSTEM · INDIA</div>
+    </div>
+    <a class="nav-item" href="index.html"><span class="nav-dot"></span>Dashboard</a>
+    <a class="nav-item" href="alerts.html"><span class="nav-dot"></span>Breach Alerts <span style="margin-left:auto;background:rgba(255,59,92,0.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:99px;">8</span></a>
+    <a class="nav-item active" href="report.html"><span class="nav-dot"></span>DPDP Compliance Report</a>
+    <div class="nav-item"><span class="nav-dot"></span>Patients</div>
+    <div class="nav-item"><span class="nav-dot"></span>Settings</div>
+    <div class="sidebar-footer">
+      <div><span class="status-dot"></span><span class="status-text">MONITORING ACTIVE</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:var(--mono);">Last scan: 2 min ago</div>
+      <div class="dpdp-badge">DPDP ACT 2023 COMPLIANT</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title">DPDP Act Compliance Report</div>
+        <div class="page-sub">INCIDENT #0032 — AUTO-GENERATED BY MEDISHIELD · AIIMS NEW DELHI</div>
+      </div>
+    </div>
+
+    <div class="report-container">
+
+      <div class="report-header">
+        <div>
+          <div class="report-type">DIGITAL PERSONAL DATA PROTECTION ACT 2023 — BREACH NOTIFICATION REPORT</div>
+          <div class="report-title">Data Breach Incident Report</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px;">AIIMS New Delhi — Compliance & Data Protection Division</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--mono);">Submitted to: Data Protection Board of India (DPBI)</div>
+          <span class="severity-tag">SEVERITY: CRITICAL</span>
+        </div>
+        <div style="text-align:right">
+          <div class="report-id">#INC-0032</div>
+          <div class="report-date">Generated: Apr 18, 2026</div>
+          <div class="report-date">Time: 09:15:42 AM IST</div>
+          <div style="margin-top:8px;font-size:11px;font-family:var(--mono);color:var(--green);">✓ AUTO-GENERATED BY MEDISHIELD</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">INCIDENT DETAILS — DPDP ACT 2023 SECTION 8(6)</div>
+        <div class="field-grid">
+          <div class="field"><span class="field-label">INCIDENT TYPE</span><span class="field-value danger">Unauthorised Disclosure of Personal Data</span></div>
+          <div class="field"><span class="field-label">DETECTION METHOD</span><span class="field-value">MediShield Dark Web Monitor · CloudSEK Feed</span></div>
+          <div class="field"><span class="field-label">DATE & TIME DETECTED</span><span class="field-value">April 18, 2026 — 09:12 AM IST</span></div>
+          <div class="field"><span class="field-label">ESTIMATED BREACH DATE</span><span class="field-value warn">April 15, 2026 (approx.)</span></div>
+          <div class="field"><span class="field-label">BREACH SOURCE</span><span class="field-value danger">darkpaste[.]onion</span></div>
+          <div class="field"><span class="field-label">DATA PRINCIPALS AFFECTED</span><span class="field-value danger">1 confirmed (Rahul Sharma)</span></div>
+          <div class="field"><span class="field-label">DPDP NOTIFICATION DEADLINE</span><span class="field-value danger">72 Hours — Apr 21, 2026 · 09:12 AM IST</span></div>
+          <div class="field"><span class="field-label">MAX PENALTY IF NON-COMPLIANT</span><span class="field-value danger">₹250 Crore (DPDP Act 2023)</span></div>
+          <div class="field field-full"><span class="field-label">INCIDENT DESCRIPTION</span><span class="field-value">Personal data of patient Rahul Sharma (Data Principal) including Aadhaar-linked Health ID, ABHA number, health insurance ID, and email address was detected on a known dark web data marketplace by MediShield's automated monitoring system. This constitutes a personal data breach under Section 2(14) of the DPDP Act 2023. Immediate containment, notification, and compliance actions have been initiated as per Section 8(6) obligations of the Data Fiduciary (AIIMS New Delhi).</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">CATEGORIES OF PERSONAL DATA BREACHED</div>
+        <div class="data-tags">
+          <span class="data-tag critical">Aadhaar-linked Health ID</span>
+          <span class="data-tag critical">ABHA Number</span>
+          <span class="data-tag critical">Health Insurance ID</span>
+          <span class="data-tag critical">Email Address</span>
+          <span class="data-tag high">Date of Birth</span>
+          <span class="data-tag high">Patient Full Name</span>
+          <span class="data-tag medium">Hospital Registration ID</span>
+        </div>
+        <div class="penalty-box">
+          <span style="color:var(--red);font-family:var(--mono);font-size:11px;letter-spacing:1px;">DPDP ACT NOTE: </span>
+          Health data and Aadhaar-linked identifiers are classified as Sensitive Personal Data under DPDP Act 2023. Breach of this data triggers mandatory notification obligations to the Data Protection Board of India within 72 hours and to affected Data Principals (patients) without undue delay. Non-compliance penalty: up to <span style="color:var(--red);font-weight:600;">₹250 Crore</span>.
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">INCIDENT RESPONSE TIMELINE</div>
+        <div class="timeline-item">
+          <span class="tl-time">Apr 18 · 09:12 AM IST</span>
+          <div class="tl-dot" style="background:var(--red)"></div>
+          <div class="tl-content"><strong>Breach detected</strong> — MediShield flagged patient PT-4821 (Rahul Sharma) data on darkpaste[.]onion during automated CloudSEK + HIBP scan</div>
+        </div>
+        <div class="timeline-item">
+          <span class="tl-time">Apr 18 · 09:13 AM IST</span>
+          <div class="tl-dot" style="background:var(--amber)"></div>
+          <div class="tl-content"><strong>Risk assessment completed</strong> — Automated risk score: 94/100 (Critical). 4 categories of sensitive personal data confirmed exposed including Aadhaar-linked Health ID.</div>
+        </div>
+        <div class="timeline-item">
+          <span class="tl-time">Apr 18 · 09:14 AM IST</span>
+          <div class="tl-dot" style="background:var(--accent)"></div>
+          <div class="tl-content"><strong>Data Protection Officer (DPO) alerted</strong> — Auto-notification sent to hospital DPO and compliance team via MediShield dashboard as required under DPDP Act 2023</div>
+        </div>
+        <div class="timeline-item">
+          <span class="tl-time">Apr 18 · 09:15 AM IST</span>
+          <div class="tl-dot" style="background:var(--accent)"></div>
+          <div class="tl-content"><strong>This report auto-generated</strong> — DPDP Act breach notification report created by MediShield, queued for submission to Data Protection Board of India</div>
+        </div>
+        <div class="timeline-item">
+          <span class="tl-time">PENDING</span>
+          <div class="tl-dot" style="background:var(--muted)"></div>
+          <div class="tl-content" style="color:var(--muted)"><strong>Patient (Data Principal) notification</strong> — Alert email to Rahul Sharma pending DPO approval — must be sent without undue delay per DPDP Act Section 8(6)</div>
+        </div>
+        <div class="timeline-item">
+          <span class="tl-time">DEADLINE: Apr 21</span>
+          <div class="tl-dot" style="background:var(--red)"></div>
+          <div class="tl-content" style="color:var(--red)"><strong>DPDP Act 72-hour deadline</strong> — Mandatory notification to Data Protection Board of India by April 21, 2026 · 09:12 AM IST</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">DPDP ACT 2023 COMPLIANCE CHECKLIST — SECTION 8(6)</div>
+        <div class="check-item"><div class="check-box done">✓</div><span class="check-text">Breach detected and documented within 24 hours of occurrence</span><span class="check-status done">COMPLETE</span></div>
+        <div class="check-item"><div class="check-box done">✓</div><span class="check-text">Risk assessment performed — sensitive personal data categories identified</span><span class="check-status done">COMPLETE</span></div>
+        <div class="check-item"><div class="check-box done">✓</div><span class="check-text">Data Protection Officer (DPO) notified immediately</span><span class="check-status done">COMPLETE</span></div>
+        <div class="check-item"><div class="check-box done">✓</div><span class="check-text">Breach notification report generated (this document)</span><span class="check-status done">COMPLETE</span></div>
+        <div class="check-item"><div class="check-box pending">!</div><span class="check-text">Data Principal (patient) breach notification email sent without undue delay</span><span class="check-status pending">PENDING</span></div>
+        <div class="check-item"><div class="check-box pending">!</div><span class="check-text">Notification filed with Data Protection Board of India within 72 hours</span><span class="check-status pending">PENDING — DUE APR 21</span></div>
+        <div class="check-item"><div class="check-box pending">!</div><span class="check-text">Root cause analysis and remediation plan submitted to DPO</span><span class="check-status pending">PENDING</span></div>
+        <div class="check-item"><div class="check-box pending">!</div><span class="check-text">Technical and organisational measures implemented to prevent recurrence</span><span class="check-status pending">PENDING</span></div>
+      </div>
+
+      <div class="actions-bar">
+        <button class="btn btn-primary" onclick="showToast('✓ Report downloaded as INC-0032-DPDP-ACT.pdf')">⬇ DOWNLOAD PDF REPORT</button>
+        <button class="btn btn-danger" onclick="showToast('✓ Submitted to Data Protection Board of India — Reference: DPBI-2026-0441')">⚖ SUBMIT TO DPBI</button>
+        <button class="btn btn-secondary" onclick="showToast('✓ Report emailed to Data Protection Officer and Compliance Team')">✉ EMAIL TO DPO</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediShield — Breach Alerts</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14; --surface: #0d1520; --surface2: #111d2e;
+    --border: #1a2d45; --accent: #00d4ff; --red: #ff3b5c;
+    --amber: #ffb700; --green: #00e676; --text: #e0eaf5;
+    --muted: #5a7a99; --mono: 'Share Tech Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+  .sidebar { width: 230px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; flex-shrink: 0; }
+  .logo { padding: 0 20px 28px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .logo-icon svg { width: 20px; height: 20px; fill: #080c14; }
+  .logo-name { font-family: var(--mono); font-size: 18px; color: var(--accent); letter-spacing: 2px; }
+  .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.2s; border-left: 2px solid transparent; text-decoration: none; }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,255,0.05); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; padding: 20px; border-top: 1px solid var(--border); }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .dpdp-badge { margin-top: 10px; background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); border-radius: 6px; padding: 6px 10px; font-size: 10px; color: var(--accent); font-family: var(--mono); }
+  .main { flex: 1; padding: 28px; overflow-y: auto; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .page-title { font-size: 20px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+  .dpdp-alert { background: rgba(255,59,92,0.06); border: 1px solid rgba(255,59,92,0.2); border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--red); font-family: var(--mono); }
+  .patients-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .patient-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+  .patient-card:hover { border-color: var(--accent); }
+  .patient-card.critical { border-top: 3px solid var(--red); }
+  .patient-card.high { border-top: 3px solid var(--amber); }
+  .patient-card.medium { border-top: 3px solid var(--accent); }
+  .card-head { padding: 16px 18px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .patient-info { display: flex; gap: 12px; align-items: center; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+  .avatar.red { background: rgba(255,59,92,0.15); color: var(--red); }
+  .avatar.amber { background: rgba(255,183,0,0.15); color: var(--amber); }
+  .avatar.blue { background: rgba(0,212,255,0.1); color: var(--accent); }
+  .patient-name { font-size: 15px; font-weight: 500; }
+  .patient-id { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .risk-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 500; font-family: var(--mono); }
+  .risk-badge.critical { background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+  .risk-badge.high { background: rgba(255,183,0,0.15); color: var(--amber); border: 1px solid rgba(255,183,0,0.3); }
+  .risk-badge.medium { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+  .card-body { padding: 16px 18px; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(26,45,69,0.5); font-size: 13px; }
+  .info-row:last-of-type { border-bottom: none; }
+  .info-label { color: var(--muted); font-size: 11px; font-family: var(--mono); }
+  .info-val { color: var(--text); text-align: right; font-size: 12px; }
+  .info-val.danger { color: var(--red); } .info-val.warn { color: var(--amber); }
+  .score-section { margin: 14px 0; }
+  .score-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 6px; }
+  .score-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 3px; }
+  .card-actions { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; font-family: var(--mono); letter-spacing: 0.5px; transition: all 0.2s; }
+  .btn-primary { background: var(--accent); color: #080c14; flex: 1; }
+  .btn-primary:hover { background: #33ddff; }
+  .btn-primary.sent { background: var(--green); color: #080c14; }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #080c14; padding: 12px 20px; border-radius: 8px; font-family: var(--mono); font-size: 13px; font-weight: 500; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 99; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+  .filter-btn { padding: 7px 16px; border-radius: 99px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: var(--mono); transition: all 0.2s; }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.05); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+      <div class="logo-name">MEDISHIELD</div>
+      <div class="logo-sub">DPDP ACT COMPLIANCE SYSTEM · INDIA</div>
+    </div>
+    <a class="nav-item" href="index.html"><span class="nav-dot"></span>Dashboard</a>
+    <a class="nav-item active" href="alerts.html"><span class="nav-dot"></span>Breach Alerts <span style="margin-left:auto;background:rgba(255,59,92,0.2);color:var(--red);font-size:10px;padding:2px 6px;border-radius:99px;">8</span></a>
+    <a class="nav-item" href="report.html"><span class="nav-dot"></span>DPDP Compliance Report</a>
+    <div class="nav-item"><span class="nav-dot"></span>Patients</div>
+    <div class="nav-item"><span class="nav-dot"></span>Settings</div>
+    <div class="sidebar-footer">
+      <div><span class="status-dot"></span><span class="status-text">MONITORING ACTIVE</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:var(--mono);">Last scan: 2 min ago</div>
+      <div class="dpdp-badge">DPDP ACT 2023 COMPLIANT</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Breach Alerts</div>
+        <div class="page-sub">8 ACTIVE ALERTS — SORTED BY RISK SCORE · AIIMS NEW DELHI</div>
+      </div>
+    </div>
+
+    <div class="dpdp-alert">
+      ⚖ DPDP Act 2023 — Section 8(6): Critical breaches must be reported to Data Protection Board of India within 72 hours &nbsp;·&nbsp; 3 alerts require immediate patient notification
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-btn active">All Risk Levels</button>
+      <button class="filter-btn active">Unnotified Only</button>
+      <button class="filter-btn active">ABHA ID Exposed</button>
+    </div>
+
+    <div class="patients-grid">
+
+      <div class="patient-card critical">
+        <div class="card-head">
+          <div class="patient-info">
+            <div class="avatar red">RS</div>
+            <div><div class="patient-name">Rahul Sharma</div><div class="patient-id">ID: PT-4821 · Cardiology · ABHA: 91-1234-5678</div></div>
+          </div>
+          <span class="risk-badge critical">CRITICAL</span>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="info-label">DATA EXPOSED</span><span class="info-val danger">Email, ABHA No., Aadhaar Health ID, Insurance ID</span></div>
+          <div class="info-row"><span class="info-label">BREACH SOURCE</span><span class="info-val danger">darkpaste[.]onion</span></div>
+          <div class="info-row"><span class="info-label">DETECTED</span><span class="info-val">Apr 18, 2026 · 09:12 AM IST</span></div>
+          <div class="info-row"><span class="info-label">DPDP DEADLINE</span><span class="info-val danger">72 hrs — Apr 21, 2026 · 09:12 AM</span></div>
+          <div class="info-row"><span class="info-label">PATIENT NOTIFIED</span><span class="info-val danger">NO — ACTION REQUIRED</span></div>
+          <div class="score-section">
+            <div class="score-label"><span>RISK SCORE</span><span style="color:var(--red)">94/100</span></div>
+            <div class="score-track"><div class="score-fill" style="width:94%;background:var(--red)"></div></div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="sendAlert(this,'Rahul Sharma')">✉ SEND ALERT EMAIL</button>
+          <a href="report.html"><button class="btn btn-secondary">DPDP REPORT</button></a>
+        </div>
+      </div>
+
+      <div class="patient-card critical">
+        <div class="card-head">
+          <div class="patient-info">
+            <div class="avatar red">AK</div>
+            <div><div class="patient-name">Anjali Kapoor</div><div class="patient-id">ID: PT-3302 · Oncology · ABHA: 91-2345-6789</div></div>
+          </div>
+          <span class="risk-badge critical">CRITICAL</span>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="info-label">DATA EXPOSED</span><span class="info-val danger">Email, Medical Records, Date of Birth</span></div>
+          <div class="info-row"><span class="info-label">BREACH SOURCE</span><span class="info-val danger">breachdb[.]net</span></div>
+          <div class="info-row"><span class="info-label">DETECTED</span><span class="info-val">Apr 18, 2026 · 08:47 AM IST</span></div>
+          <div class="info-row"><span class="info-label">DPDP DEADLINE</span><span class="info-val danger">72 hrs — Apr 21, 2026 · 08:47 AM</span></div>
+          <div class="info-row"><span class="info-label">PATIENT NOTIFIED</span><span class="info-val" style="color:var(--green)">YES — 09:01 AM IST</span></div>
+          <div class="score-section">
+            <div class="score-label"><span>RISK SCORE</span><span style="color:var(--red)">88/100</span></div>
+            <div class="score-track"><div class="score-fill" style="width:88%;background:var(--red)"></div></div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary sent" disabled>✓ ALERT SENT</button>
+          <a href="report.html"><button class="btn btn-secondary">DPDP REPORT</button></a>
+        </div>
+      </div>
+
+      <div class="patient-card critical">
+        <div class="card-head">
+          <div class="patient-info">
+            <div class="avatar red">NP</div>
+            <div><div class="patient-name">Neha Patel</div><div class="patient-id">ID: PT-7741 · Neurology · ABHA: 91-3456-7890</div></div>
+          </div>
+          <span class="risk-badge critical">CRITICAL</span>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="info-label">DATA EXPOSED</span><span class="info-val danger">Aadhaar Health ID, Insurance No., Address</span></div>
+          <div class="info-row"><span class="info-label">BREACH SOURCE</span><span class="info-val danger">raidforums-mirror[.]cc</span></div>
+          <div class="info-row"><span class="info-label">DETECTED</span><span class="info-val">Apr 17, 2026 · 11:33 PM IST</span></div>
+          <div class="info-row"><span class="info-label">DPDP DEADLINE</span><span class="info-val danger">72 hrs — Apr 20, 2026 · 11:33 PM</span></div>
+          <div class="info-row"><span class="info-label">PATIENT NOTIFIED</span><span class="info-val danger">NO — URGENT</span></div>
+          <div class="score-section">
+            <div class="score-label"><span>RISK SCORE</span><span style="color:var(--red)">85/100</span></div>
+            <div class="score-track"><div class="score-fill" style="width:85%;background:var(--red)"></div></div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="sendAlert(this,'Neha Patel')">✉ SEND ALERT EMAIL</button>
+          <a href="report.html"><button class="btn btn-secondary">DPDP REPORT</button></a>
+        </div>
+      </div>
+
+      <div class="patient-card high">
+        <div class="card-head">
+          <div class="patient-info">
+            <div class="avatar amber">PM</div>
+            <div><div class="patient-name">Priya Mehta</div><div class="patient-id">ID: PT-5519 · General Medicine · ABHA: 91-4567-8901</div></div>
+          </div>
+          <span class="risk-badge high">HIGH</span>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="info-label">DATA EXPOSED</span><span class="info-val warn">Email, Password Hash</span></div>
+          <div class="info-row"><span class="info-label">BREACH SOURCE</span><span class="info-val warn">HaveIBeenPwned API</span></div>
+          <div class="info-row"><span class="info-label">DETECTED</span><span class="info-val">Apr 17, 2026 · 06:20 PM IST</span></div>
+          <div class="info-row"><span class="info-label">DPDP DEADLINE</span><span class="info-val warn">72 hrs — Apr 20, 2026 · 06:20 PM</span></div>
+          <div class="info-row"><span class="info-label">PATIENT NOTIFIED</span><span class="info-val danger">NO</span></div>
+          <div class="score-section">
+            <div class="score-label"><span>RISK SCORE</span><span style="color:var(--amber)">72/100</span></div>
+            <div class="score-track"><div class="score-fill" style="width:72%;background:var(--amber)"></div></div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="sendAlert(this,'Priya Mehta')">✉ SEND ALERT EMAIL</button>
+          <a href="report.html"><button class="btn btn-secondary">DPDP REPORT</button></a>
+        </div>
+      </div>
+
+      <div class="patient-card high">
+        <div class="card-head">
+          <div class="patient-info">
+            <div class="avatar amber">VR</div>
+            <div><div class="patient-name">Vikram Rao</div><div class="patient-id">ID: PT-2201 · Paediatrics · ABHA: 91-5678-9012</div></div>
+          </div>
+          <span class="risk-badge high">HIGH</span>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="info-label">DATA EXPOSED</span><span class="info-val warn">Email, Date of Birth</span></div>
+          <div class="info-row"><span class="info-label">BREACH SOURCE</span><span class="info-val warn">leakcheck[.]io</span></div>
+          <div class="info-row"><span class="info-label">DETECTED</span><span class="info-val">Apr 17, 2026 · 02:15 PM IST</span></div>
+          <div class="info-row"><span class="info-label">DPDP DEADLINE</span><span class="info-val warn">72 hrs — Apr 20, 2026 · 02:15 PM</span></div>
+          <div class="info-row"><span class="info-label">PATIENT NOTIFIED</span><span class="info-val danger">NO</span></div>
+          <div class="score-section">
+            <div class="score-label"><span>RISK SCORE</span><span style="color:var(--amber)">65/100</span></div>
+            <div class="score-track"><div class="score-fill" style="width:65%;background:var(--amber)"></div></div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="sendAlert(this,'Vikram Rao')">✉ SEND ALERT EMAIL</button>
+          <a href="report.html"><button class="btn btn-secondary">DPDP REPORT</button></a>
+        </div>
+      </div>
+
+      <div class="patient-card medium">
+        <div class="card-head">
+          <div class="patient-info">
+            <div class="avatar blue">ST</div>
+            <div><div class="patient-name">Sneha Tiwari</div><div class="patient-id">ID: PT-6678 · Dermatology · ABHA: 91-6789-0123</div></div>
+          </div>
+          <span class="risk-badge medium">MEDIUM</span>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="info-label">DATA EXPOSED</span><span class="info-val">Email address only</span></div>
+          <div class="info-row"><span class="info-label">BREACH SOURCE</span><span class="info-val">HaveIBeenPwned API</span></div>
+          <div class="info-row"><span class="info-label">DETECTED</span><span class="info-val">Apr 17, 2026 · 11:05 AM IST</span></div>
+          <div class="info-row"><span class="info-label">DPDP DEADLINE</span><span class="info-val">72 hrs — Apr 20, 2026 · 11:05 AM</span></div>
+          <div class="info-row"><span class="info-label">PATIENT NOTIFIED</span><span class="info-val danger">NO</span></div>
+          <div class="score-section">
+            <div class="score-label"><span>RISK SCORE</span><span style="color:var(--accent)">42/100</span></div>
+            <div class="score-track"><div class="score-fill" style="width:42%;background:var(--accent)"></div></div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="sendAlert(this,'Sneha Tiwari')">✉ SEND ALERT EMAIL</button>
+          <a href="report.html"><button class="btn btn-secondary">DPDP REPORT</button></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+function sendAlert(btn, name) {
+  btn.textContent = 'SENDING...'; btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '✓ ALERT SENT'; btn.classList.add('sent');
+    const t = document.getElementById('toast');
+    t.textContent = '✓ Alert email sent to ' + name + ' — DPDP Act compliant notification delivered';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }, 1500);
+}
+</script>
+</body>
+</html>
